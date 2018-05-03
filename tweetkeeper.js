@@ -4,6 +4,7 @@ var mongoose = require("mongoose");
 
 var user = process.argv[2];
 var T = new twit(config);
+var params = {};
 
 var Schema = mongoose.Schema;
 var TweetSchema = new Schema({
@@ -123,13 +124,22 @@ async function getTimeline(user) {
     });
 
     let last_tweet = await checkUser(user);
-
-    var params = {
-        screen_name: user,
-        trim_user: true,
-        tweet_mode: 'extended',
-        count: 200,
-        since_id: last_tweet
+    
+    if (last_tweet == '0') {
+            params = {
+            screen_name: user,
+            trim_user: true,
+            tweet_mode: 'extended',
+            count: 200,
+        }
+    } else {
+            params = {
+            screen_name: user,
+            trim_user: true,
+            tweet_mode: 'extended',
+            count: 200,
+            since_id: last_tweet
+        }
     }
 
     await T.get('statuses/user_timeline', params, processTweets);
