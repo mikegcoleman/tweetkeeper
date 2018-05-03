@@ -1,0 +1,16 @@
+{
+  "name": "tweetkeeper",
+  "version": "1.0.0",
+  "description": "Captures tweets and stores them into a mongo db",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongoose": "^5.0.16",
+    "npm": "^6.0.0",
+    "twit": "^2.2.9"
+  }
+}
