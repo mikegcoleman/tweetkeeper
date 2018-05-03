@@ -128,7 +128,7 @@ async function getTimeline(user) {
         screen_name: user,
         trim_user: true,
         tweet_mode: 'extended',
-        count: 5,
+        count: 200,
         since_id: last_tweet
     }
 
