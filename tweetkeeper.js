@@ -65,7 +65,7 @@ function updateLastTweet(tweet) {
 function saveTweet(aTweet) {
     var tweet = new Tweet({
         id_str: aTweet.id_str,
-        screen_name: user,
+        user: user,
         created_at: aTweet.created_at,
         full_text: aTweet.full_text,
         in_reply_to_id_str: aTweet.in_reply_to_status_id_str,
