@@ -2,15 +2,15 @@ var twit = require("twit");
 var config = require("./config.js");
 var mongoose = require("mongoose");
 
+var user = process.argv[2];
 var T = new twit(config);
 var params = {};
-var user='';
 
 var Schema = mongoose.Schema;
 var TweetSchema = new Schema({
     id: Number,
     id_str: String,
-    screen_name: String,
+    user: String,
     created_at: String,
     full_text: String,
     in_reply_to_id_str: String,
@@ -27,8 +27,6 @@ var Tweet = mongoose.model('Tweet', TweetSchema);
 var User = mongoose.model('User', UserSchema);
 
 async function processTweets(err, tweets) {
-    console.log('process tweets for: ' + user);
-
     // loop through tweets, and save off each one
     if (tweets.length != 0) {
         if (!err) {
@@ -65,7 +63,7 @@ function updateLastTweet(tweet) {
 function saveTweet(aTweet) {
     var tweet = new Tweet({
         id_str: aTweet.id_str,
-        screen_name: user,
+        user: user,
         created_at: aTweet.created_at,
         full_text: aTweet.full_text,
         in_reply_to_id_str: aTweet.in_reply_to_status_id_str,
@@ -82,45 +80,74 @@ function saveTweet(aTweet) {
     }
 }
 
-async function getTimeline() {
+async function checkUser(user) {
+    let last_tweet = '0';
+
+    console.log('start user check');
+
+    await User.findOne({ 'screen_name': user }, function (err, person) {
+        if (err) { console.log(err) } else {
+            if (!person) {
+                console.log('User not found, creating new user ' + user);
+                createUser(user);
+            } else {
+                last_tweet = person.last_tweet;
+            }
+        }
+    });
+
+    return last_tweet;
+}
+
+function createUser(user) {
+    var user = new User({
+        screen_name: user,
+        last_tweet: '0'
+    });
+
+    try {
+        user.save();
+        console.log('User created: ' + user.screen_name);
+    }
+    catch (err) {
+        console.log('Error creating user: ' + user.screen_name + ' ' + err);
+    }
+}
+
+async function getTimeline(user) {
     mongoose.connect('mongodb://127.0.0.1/tweetkeeper');
     var db = mongoose.connection;
     db.on('error', console.error.bind(console, 'connection error:'));
 
     await db.once('open', function () {
-        console.log("DB Connection Successful!");
+        console.log("Connection Successful!");
     });
 
-    var users =   await User.find({}, function(err, users){
-        if (err) { err => console.log() } 
-    });
-
-    for (i=0; i < users.length; i++){ 
-        if (users[i].last_tweet == '0') {
-                params = {
-                screen_name: users[i].screen_name,
-                trim_user: true,
-                tweet_mode: 'extended',
-                count: 50,
-            }
-        } else {
-                params = {
-                screen_name: users[i].screen_name,
-                trim_user: true,
-                tweet_mode: 'extended',
-                count: 50,
-                since_id: users[i].last_tweet
-            }
+    let last_tweet = await checkUser(user);
+    
+    if (last_tweet == '0') {
+            params = {
+            screen_name: user,
+            trim_user: true,
+            tweet_mode: 'extended',
+            count: 200,
         }
-
-        user = params.screen_name;
-
-        await T.get('statuses/user_timeline', params, processTweets);
+    } else {
+            params = {
+            screen_name: user,
+            trim_user: true,
+            tweet_mode: 'extended',
+            count: 200,
+            since_id: last_tweet
+        }
     }
+
+    await T.get('statuses/user_timeline', params, processTweets);
+
     db.close(function () {
-        console.log('DB Connection Closed');
+        console.log('Mongoose disconnected');
     })
 }
-getTimeline();
+getTimeline(user);
 
-setInterval(function () { getTimeline() }, 180000);
+setInterval(function () { getTimeline(user) }, 10000);
